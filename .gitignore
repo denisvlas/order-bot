@@ -1,0 +1,5 @@
+node_modules/
+images/
+fe/
+be/key.json
+be/.env
