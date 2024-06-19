@@ -1,0 +1,26 @@
+.card{
+    display: flex;
+    flex-direction: column;
+    align-items: center;   
+    gap: 5px;
+    padding: 10px;
+    border-radius: 12px;
+}
+
+.img{
+    /* height: 100px; */
+    height: 120px;
+    width: 120px;
+    border-radius: 8px;
+    object-fit: cover;
+
+}
+
+.card-footer{
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}

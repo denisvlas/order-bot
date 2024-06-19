@@ -1,0 +1,69 @@
+.result-grid{
+    display: grid;
+    width: 100%;
+    padding: 5px;
+    grid-template-columns: repeat(2, 1fr); /* 3 coloane de dimensiuni egale */
+    grid-auto-rows: 230px;
+    ;
+    grid-gap: 1rem; /* Spațiu între coloane și rânduri */
+    justify-content: center;
+    margin-top: 1rem;
+    /* margin-bottom: 5rem; */
+}
+
+.total{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    padding: 5px;
+    top:40px;
+    right: 15px;
+    background: #ba63db;
+    border-radius:8px;
+    min-width: 90px;
+    max-width: 160px;
+    color: white;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.9s ease, transform 0.3s ease;
+}
+
+.total-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.6s ease, transform 0.3s ease;
+  }
+.total-invisible {
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .pay-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    padding: 0 15px 5px;
+    z-index: 2;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    right: 0;
+}
+  .pay{
+    width: 100%;
+    background: lightgreen;
+    color:rgb(52, 76, 100);
+    font-weight: 600;
+    font-size: 25px;
+    display: flex;
+    gap: 10px;
+    height: 60px;
+    border-radius:12px ;
+    justify-content: center;
+    align-items: center;
+
+}

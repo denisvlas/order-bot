@@ -1,0 +1,45 @@
+.header {
+  width: 100%;
+  height: 100%;
+  padding-top: 20px;
+  color: white;
+  text-align: center;
+  font-weight: 600;
+  font-size: 25px;
+}
+
+.footer {
+  width: calc(100% - 30px);
+  height: 60px;
+  background: rgb(52, 76, 100);
+  color: white;
+  text-align: center;
+  font-weight: 600;
+  font-size: 25px;
+  border-radius: 12px;
+  padding: 0 15px;
+  position: fixed;
+  bottom: 5px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+} 
+  /* align-items: center;
+  grid-template-columns: repeat(3, 1fr); /* 3 coloane de dimensiuni egale */
+  /* grid-gap: 1rem; Spațiu între coloane și rânduri */
+/* } */
+
+.active {
+  background: #ba63db;
+  border-radius: 12px;
+  color: white;
+  width: 33%;
+
+  font-weight: 600;
+  /* font-size: 25px; */
+}
+
+.pages {
+  /* background: red; */
+  width: 33%;
+}

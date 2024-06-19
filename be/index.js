@@ -1,69 +1,25 @@
-// // const token="6982826990:AAEuE9poDPJxglvX2aylXkrx2v1TdyVKtjc"
+require('dotenv').config();
+const token = process.env.TELEGRAM_BOT_TOKEN;
 
-// // const TelegramBot = require('node-telegram-bot-api');
+const TelegramBot = require("node-telegram-bot-api");
 
-// // const bot = new TelegramBot(token, {polling: true});
-
-// // bot.on('message', (msg) => {
-// //     const chatId = msg.chat.id;
-// //     bot.sendMessage(chatId, 'Received your message');
-// // });
-
-// const express = require('express');
-// const app = express();
-// const port = 3000;
-
-// app.use(express.json());
-// const mysql = require("mysql");
-
-// const db = mysql.createConnection({
-//     user: "root",
-//     host: "localhost",
-//     password: "admin",
-//     database: "bot",
-//   });
-// // Endpoint simplu de test
-// app.get('/', (req, res) => {
-//   res.send('Hello, World!');
-// });
-
-// app.get("/products", (req, res) => {
-//     const sqlSelectProjects = "SELECT * FROM products";
-//     db.query(sqlSelectProjects, (err, result) => {
-//       if (err) {
-//         return err;
-//       }
-//       res.json(result);
-//     });
-//   });
-
-// app.post('/test', (req, res) => {
-//   const data = req.body;
-//   res.json({
-//     message: 'Data received successfully',
-//     receivedData: data
-//   });
-// });
-
-// // Pornirea serverului
-// app.listen(port, () => {
-//   console.log(`Server is running on http://localhost:${port}`);
-// });
+const bot = new TelegramBot(token, { polling: true });
 
 const express = require("express");
 const app = express();
 const admin = require("firebase-admin");
-const credentials = require("./key.json");
+const credentials = require(process.env.FIREBASE_CREDENTIALS_PATH);
 const multer = require("multer");
 const cors = require("cors");
-
+const ngrok = require("ngrok");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+
 admin.initializeApp({
   credential: admin.credential.cert(credentials),
-  storageBucket: "orders-1c550.appspot.com",
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
 });
 const bucket = admin.storage().bucket();
 
@@ -72,6 +28,11 @@ const db = admin.firestore();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+
+app.use((req, res, next) => {
+  res.setHeader("ngrok-skip-browser-warning", "any-value");
+  next();
+});
 
 app.post("/addProduct", upload.single("image"), async (req, res) => {
   try {
@@ -111,12 +72,10 @@ app.post("/addProduct", upload.single("image"), async (req, res) => {
       imageUrl: url,
     });
 
-    res
-      .status(201)
-      .json({
-        message: "Product added successfully",
-        productId: newProductRef.id,
-      });
+    res.status(201).json({
+      message: "Product added successfully",
+      productId: newProductRef.id,
+    });
   } catch (error) {
     console.error("Error adding product:", error);
     res.status(500).json({ error: "Something went wrong" });
@@ -177,53 +136,162 @@ app.get("/images", async (req, res) => {
   }
 });
 
+let phoneNumber = "";
+let chatId = "";
 
+// bot.onText(/\/start/, (msg) => {
+//   chatId = msg.chat.id;
+//   bot.sendMessage(
+//     chatId,
+//     'Bine ai venit! Apasă pe butonul "Menu" pentru a deschide meniul.'
+//   );
+// });
 
-app.post('/submitOrder', async (req, res) => {
+const frontendURL="https://4896-178-168-93-81.ngrok-free.app/?tableId="
+
+bot.onText(/\/start (.+)/, (msg, match) => {
+  const chatId = msg.chat.id;
+  const param = match[1]; // Extract the parameter from the /start command
+  const tableId = param.replace('table', ''); // Extract table number
+
+  // Generate URL for the web app with tableId
+  const webAppUrl = frontendURL+tableId;
+
+  // Define the custom keyboard with a button
+  const keyboard = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "Open Menu",
+            web_app: {
+              url: webAppUrl,
+            },
+          },
+        ],
+      ],
+    },
+  };
+
+  // Send the message with the custom keyboard
+  bot.sendMessage(chatId, "Apasă pe butonul de mai jos pentru a accesa meniul:", keyboard);
+});
+
+bot.on("contact", (msg) => {
+  phoneNumber = msg.contact.phone_number;
+  console.log(msg);
+  console.log("User phone number:", phoneNumber);
+
+  // Șterge mesajul de contact din chat
+  bot
+    .deleteMessage(msg.chat.id, msg.message_id)
+    .then(() => {
+      console.log("Mesajul de contact a fost șters.");
+    })
+    .catch((error) => {
+      console.error("Eroare la ștergerea mesajului:", error);
+    });
+});
+
+let order = null;
+
+app.post("/submitOrder", async (req, res) => {
   try {
-    const { userId, cart,totalPrice } = req.body;
-
-    const newOrderRef = db.collection('orders').doc();
+    const { userId, username, cart, totalPrice } = req.body;
+    const newOrderRef = db.collection("orders").doc();
     await newOrderRef.set({
       id: newOrderRef.id,
       userId: userId,
-      items: cart.map(item => ({
+      username: username,
+      items: cart.map((item) => ({
         productId: item.id,
-        quantity: item.quantity
+        quantity: item.quantity,
       })),
-      totalPrice:totalPrice,
-
+      totalPrice: totalPrice,
+      phoneNumber: phoneNumber,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    let orderMessage = `\t🍽️Detalii comandă 🍽️\n\n`;
+    cart.forEach((item) => {
+      orderMessage += `\n🍔Produs: ${item.name}\n❔Cantitate: ${item.quantity}\n💲Preț: ${item.price} MDL \n`;
+    });
+    orderMessage += `\n💰Preț total: ${totalPrice} MDL\n`;
 
-    res.status(201).json({ message: 'Order submitted successfully', orderId: newOrderRef.id });
+    // Trimite mesajul de confirmare în chat
+    bot
+      .sendMessage(userId, orderMessage)
+      .then(() => {
+        console.log("Mesajul de comandă a fost trimis.");
+      })
+      .catch((error) => {
+        console.error("Eroare la trimiterea mesajului de comandă:", error);
+      });
+    res
+      .status(201)
+      .json({
+        message: "Order submitted successfully",
+        orderId: newOrderRef.id,
+      });
   } catch (error) {
-    console.error('Error submitting order:', error);
-    res.status(500).json({ error: 'Something went wrong' });
+    console.error("Error submitting order:", error);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+
+
+app.get("/popular", async (req, res) => {
+  try {
+    // Obținem toate comenzile
+    const ordersSnapshot = await db.collection("orders").get();
+    let productCounts = {};
+
+    // Iterăm prin fiecare comandă pentru a număra produsele comandate
+    ordersSnapshot.forEach((orderDoc) => {
+      const orderData = orderDoc.data();
+      orderData.items.forEach((item) => {
+        const productId = item.productId;
+        if (productCounts[productId]) {
+          productCounts[productId] += item.quantity;
+        } else {
+          productCounts[productId] = item.quantity;
+        }
+      });
+    });
+
+    // Sortăm produsele după numărul de comenzi descrescător
+    const sortedProducts = Object.keys(productCounts).sort(
+      (a, b) => productCounts[b] - productCounts[a]
+    );
+
+    // Obținem detalii despre produsele sortate
+    const popularProducts = await Promise.all(
+      sortedProducts.map(async (productId) => {
+        const productDoc = await db.collection("products").doc(productId).get();
+        const productData = productDoc.data();
+        return {
+          id: productId,
+          name: productData.name,
+          description: productData.description,
+          price: productData.price,
+          imageUrl: productData.imageUrl,
+          totalOrders: productCounts[productId],
+        };
+      })
+    );
+
+    res.json(popularProducts);
+  } catch (error) {
+    console.error("Error fetching popular products:", error);
+    res.status(500).json({ error: "Something went wrong" });
   }
 });
 
 
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+
+app.listen(port, async () => {
+  console.log(`localhost is running on http://localhost:${port}`);
 });
 
-
-// import { initializeApp } from "firebase/app";
-// // TODO: Add SDKs for Firebase products that you want to use
-// // https://firebase.google.com/docs/web/setup#available-libraries
-
-// // Your web app's Firebase configuration
-// const firebaseConfig = {
-//   apiKey: "AIzaSyDScWOng97DJejZPdB08IT66xvpu71uLPA",
-//   authDomain: "orders-1c550.firebaseapp.com",
-//   projectId: "orders-1c550",
-//   storageBucket: "orders-1c550.appspot.com",
-//   messagingSenderId: "214286867595",
-//   appId: "1:214286867595:web:a12ad779c40bf52d83088e"
-// };
-
-// Initialize Firebase
-// const app = initializeApp(firebaseConfig);

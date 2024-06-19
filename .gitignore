@@ -1,5 +1,6 @@
-node_modules/
 images/
-fe/
+fe/node_modules
+be/node_modules
 be/key.json
 be/.env
+be/ngrok.yml
